@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+// Prototypes
 int match(const char *string, const char *pattern);
 void parseCIDR(char *string, int *ip, int *cidr);
 
@@ -32,7 +33,6 @@ int main(int argc, char *argv[]) {
         }
     } else if (argc == 3) {
         if ( (match(argv[1], ddnValidation)) && (match(argv[2], ddnValidation))) {
-            printf("yes, ddn\n");
             inputValidation = true;
         }
     }
