@@ -9,7 +9,7 @@ int match(const char *string, const char *pattern);
 void parseCIDR(char *string, int *ip, int *cidr);
 void parseDDN(char *string, int *ip);
 int validateIP(int *ip);
-int validateMask(int *mask);
+int validateMask(int *mask, int *cidr);
 void cidr_to_mask(int cidr, int *mask);
 int bin_to_dec(int *binArray);
 
@@ -34,11 +34,8 @@ int main(int argc, char *argv[]) {
             inputValidation = true;
             parseCIDR(argv[1], ip, &cidr);
             if (!validateIP(ip)) { inputValidation = false; }
-            if ( (cidr < 1) || (cidr > 32) ) { inputValidation = false; }
+            if ( (cidr < 8) || (cidr > 30) ) { inputValidation = false; }
             if (inputValidation == true) { cidr_to_mask(cidr, mask); }
-            printf("IP: %d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
-            printf("CIDR: %d\n", cidr);
-            printf("Mask: %d.%d.%d.%d\n", mask[0], mask[1], mask[2], mask[3]);
         }
     } else if (argc == 3) {
         if ( (match(argv[1], ddnValidation)) && (match(argv[2], ddnValidation))) {
@@ -46,16 +43,17 @@ int main(int argc, char *argv[]) {
             parseDDN(argv[1], ip);
             parseDDN(argv[2], mask);
             if (!validateIP(ip)) { inputValidation = false; }
-            if (!validateMask(mask)) { inputValidation = false; }
-            printf("IP: %d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
-            printf("CIDR: %d\n", cidr);
-            printf("Mask: %d.%d.%d.%d\n", mask[0], mask[1], mask[2], mask[3]);            
+            if (!validateMask(mask, &cidr)) { inputValidation = false; }         
         }
     }
 
-    // if the input syntax was not correct, print the syntax error message
-    // giving the correct syntax.
-    if (inputValidation == false) {
+    // If the input passes validation, IP, CID, and Mask are printed.
+    // Or...a syntax message is displayed
+    if (inputValidation == true) {
+        printf("IP: %d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
+        printf("CIDR: %d\n", cidr);
+        printf("Mask: %d.%d.%d.%d\n", mask[0], mask[1], mask[2], mask[3]); 
+    } else {
         printf("\nSyntax: \"subnet xxx.xxx.xxx.xxx/xx\" or"
             " \"subnet xxx.xxx.xxx.xxx xxx.xxx.xxx.xxx\"\n\n");
     }
@@ -132,18 +130,62 @@ int validateIP(int *ip) {
     }
 }
 
-int validateMask(int *mask) {
-    // Validates IPv4 maskbinMask[i]
+int validateMask(int *mask, int *cidr) {
 
-    if (  (mask[0] >= 0) && (mask[0] <= 255) &&
-        ( (mask[1] >= 0) && (mask[1] <= 255) ) &&
-        ( (mask[2] >= 0) && (mask[2] <= 255) ) &&
-        ( (mask[3] >= 0) && (mask[3] <= 255) ) )
-    {
-        return 1;
-    } else {
-        return 0;
+    // Create a 32 bit integer array to hold the binary representation of the mask
+    int binMask[32] = {0};
+    int a = mask[0], b=mask[1], c=mask[2], d=mask[3];
+
+    // Datafll the binary array of the mask
+    if (a >= 128) { binMask[0] = 1; a-=128; }
+    if (a >= 64) { binMask[1] = 1; a-=64; }
+    if (a >= 32) { binMask[2] = 1; a-=32; }
+    if (a >= 16) { binMask[3] = 1; a-=16; }
+    if (a >= 8) { binMask[4] = 1; a-=8; }
+    if (a >= 4) { binMask[5] = 1; a-=4; }
+    if (a >= 2) { binMask[6] = 1; a-=2; }
+    if (a >= 1) { binMask[7] = 1; a-=1; }
+
+    if (b >= 128) { binMask[8] = 1; b-=128; }
+    if (b >= 64) { binMask[9] = 1; b-=64; }
+    if (b >= 32) { binMask[10] = 1; b-=32; }
+    if (b >= 16) { binMask[11] = 1; b-=16; }
+    if (b >= 8) { binMask[12] = 1; b-=8; }
+    if (b >= 4) { binMask[13] = 1; b-=4; }
+    if (b >= 2) { binMask[14] = 1; b-=2; }
+    if (b >= 1) { binMask[15] = 1; b-=1; }
+
+    if (c >= 128) { binMask[16] = 1; c-=128; }
+    if (c >= 64) { binMask[17] = 1; c-=64; }
+    if (c >= 32) { binMask[18] = 1; c-=32; }
+    if (c >= 16) { binMask[19] = 1; c-=16; }
+    if (c >= 8) { binMask[20] = 1; c-=8; }
+    if (c >= 4) { binMask[21] = 1; c-=4; }
+    if (c >= 2) { binMask[22] = 1; c-=2; }
+    if (c >= 1) { binMask[23] = 1; c-=1; }
+
+    if (d >= 128) { binMask[24] = 1; d-=128; }
+    if (d >= 64) { binMask[25] = 1; d-=64; }
+    if (d >= 32) { binMask[26] = 1; d-=32; }
+    if (d >= 16) { binMask[27] = 1; d-=16; }
+    if (d >= 8) { binMask[28] = 1; d-=8; }
+    if (d >= 4) { binMask[29] = 1; d-=4; }
+    if (d >= 2) { binMask[30] = 1; d-=2; }
+    if (d >= 1) { binMask[31] = 1; d-=1; }
+
+    // Test the validity of the mask. There can never be 1's to the right
+    // of a 0 in a mask. Also, in this check, the CIDR bits are counted
+    int tst=1, count=0;
+    bool val=true;
+    for (int i=0; i<32; i++) {
+        if (binMask[i] == 0) { tst = 0; }
+        if ((tst == 0) && (binMask[i] == 1)) { val = false; break; }
+        if (binMask[i] == 1) { count++; }
     }
+
+    if (val == true) { *cidr = count; } 
+
+    return val;
 }
 
 void cidr_to_mask(int cidr, int *mask) {
