@@ -11,6 +11,7 @@ void parseDDN(char *string, int *ip);
 int validateIP(int *ip);
 int validateMask(int *mask);
 void cidr_to_mask(int cidr, int *mask);
+int bin_to_dec(int *binArray);
 
 int main(int argc, char *argv[]) {
     bool inputValidation = false;
@@ -35,6 +36,9 @@ int main(int argc, char *argv[]) {
             if (!validateIP(ip)) { inputValidation = false; }
             if ( (cidr < 1) || (cidr > 32) ) { inputValidation = false; }
             if (inputValidation == true) { cidr_to_mask(cidr, mask); }
+            printf("IP: %d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
+            printf("CIDR: %d\n", cidr);
+            printf("Mask: %d.%d.%d.%d\n", mask[0], mask[1], mask[2], mask[3]);
         }
     } else if (argc == 3) {
         if ( (match(argv[1], ddnValidation)) && (match(argv[2], ddnValidation))) {
@@ -43,6 +47,9 @@ int main(int argc, char *argv[]) {
             parseDDN(argv[2], mask);
             if (!validateIP(ip)) { inputValidation = false; }
             if (!validateMask(mask)) { inputValidation = false; }
+            printf("IP: %d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
+            printf("CIDR: %d\n", cidr);
+            printf("Mask: %d.%d.%d.%d\n", mask[0], mask[1], mask[2], mask[3]);            
         }
     }
 
@@ -140,5 +147,32 @@ int validateMask(int *mask) {
 }
 
 void cidr_to_mask(int cidr, int *mask) {
+    int binA[8]={0}, binB[8]={0}, binC[8]={0}, binD[8]={0};
+    int a=0, b=0, c=0, d=0;
 
+    // create the binary representation of the octets
+    for (int i=0; i<cidr; i++) {
+        if (i<8) { binA[a] = 1; a++; }
+        if ( (i>=8) && (i<16) ) { binB[b] = 1; b++; }
+        if ( (i>=16) && (i<24) ) { binC[c] = 1; c++; }
+        if (i>=24) { binD[d] = 1; d++; }
+    }
+
+    // datafill the mask array
+    mask[0] = bin_to_dec(binA);
+    mask[1] = bin_to_dec(binB);
+    mask[2] = bin_to_dec(binC);
+    mask[3] = bin_to_dec(binD);
+}
+
+int bin_to_dec(int *binArray) {
+    // Takes an integer arry representing 8 bits and calculates/returns
+    // the decimal value
+
+    int ph[] = {128,64,32,16,8,4,2,1};
+    int result=0;
+    for(int i=0; i<8; i++) {
+        if (binArray[i] == 1) { result += ph[i]; }
+    }
+    return result;
 }
