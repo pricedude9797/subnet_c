@@ -18,6 +18,11 @@ int main(int argc, char *argv[]) {
     int ip[4] = {0,0,0,0};
     int mask[4] = {0,0,0,0};
     int cidr = 0;
+    int network[4] = {0,0,0,0};
+    int first[4] = {0,0,0,0};
+    int last[4] = {0,0,0,0};
+    int broadcast[4] = {0,0,0,0};
+    int hosts = 0;
 
     // Regular expression for IP/CIDR notation
     const char *cidrValidation = "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$";
@@ -50,9 +55,13 @@ int main(int argc, char *argv[]) {
     // If the input passes validation, IP, CID, and Mask are printed.
     // Or...a syntax message is displayed
     if (inputValidation == true) {
-        printf("IP: %d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
-        printf("CIDR: %d\n", cidr);
-        printf("Mask: %d.%d.%d.%d\n", mask[0], mask[1], mask[2], mask[3]); 
+        printf("\nIP Address       : %d.%d.%d.%d/%d (%d.%d.%d.%d)\n",
+            ip[0], ip[1], ip[2], ip[3], cidr, mask[0], mask[1], mask[2], mask[3]);
+        printf("Number of hosts  : %d\n", hosts);
+        printf("Network address  : %d.%d.%d.%d\n", network[0], network[1], network[2], network[3]);
+        printf("First address    : %d.%d.%d.%d\n", first[0], first[1], first[2], first[3]);
+        printf("Last address     : %d.%d.%d.%d\n", last[0], last[1], last[2], last[3]);
+        printf("Broadcast address: %d.%d.%d.%d\n\n", broadcast[0], broadcast[1], broadcast[2], broadcast[3]);
     } else {
         printf("\nSyntax: \"subnet xxx.xxx.xxx.xxx/xx\" or"
             " \"subnet xxx.xxx.xxx.xxx xxx.xxx.xxx.xxx\"\n\n");
