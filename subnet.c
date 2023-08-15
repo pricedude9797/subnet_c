@@ -1,10 +1,12 @@
 #include <stdio.h>
+#include <string.h>
 #include <regex.h>
 
 // Prototypes
 int match(const char *string, const char *pattern);
 
 int main(int argc, char *argv[]) {
+    argc = 2; argv[0]="./subnet"; argv[1]="192.168.0.1/24";
 
     const char *cidrValidation = "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$";
     const char *ddnValidation = "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$";
