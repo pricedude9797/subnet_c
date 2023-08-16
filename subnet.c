@@ -2,64 +2,41 @@
 #include <stdlib.h>
 #include <string.h>
 #include <regex.h>
-#include <math.h>
 
 // Prototypes
 int match(const char *string, const char *pattern);
-void cidr_to_binmask(int cidr, char *binmask);
-
-void binmask_to_decmask (char *binmask, int *decmask) {
-    int j=0;
-
-    for (int i=0; i<32; i++) {
-        if (i<8) {
-            printf("%c", binmask[i]);
-        } else if ( (i>7) && (i<16) ) {
-            printf("%c", binmask[i]);
-        } else if ( (i>15) && (i<24) ) {
-            printf("%c", binmask[i]);
-        } else if (i>23) {
-            printf("%c", binmask[i]);
-        }
-    }
-    printf("\n");
-}
+void parseIPCIDR(char *str, int *ip, int *cidr);
+void cidr_to_binMask(int cidr, char *bin_mask);
+void binMask_to_Mask(char *bin_mask, int *mask);
+int bin_to_dec(char *bin);
 
 int main(int argc, char *argv[]) {
     argc = 2; argv[0]="./subnet"; argv[1]="192.168.0.1/24";
     int ip[4] = {0};
+    int mask[4] = {0};
+    char bin_mask[33];
     int cidr = 0;
-    char binmask[33] = {"0"};
-    int decmask[4] = {0};
+    int result = 0;
 
     const char *cidrValidation = "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$";
     const char *ddnValidation = "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$";
 
     if ((argc == 2) && (match(argv[1], cidrValidation))) {
 
-        // split the string into 2 parts delimited by '/'
-        char string[strlen(argv[1])];
-        strcpy(string, argv[1]);
-        char *ip_str = strtok(string, "/");
-        cidr = atoi(strtok(NULL, " "));
-
-        // split the ip into its 4 octets delimited by '.'
-        ip[0] = atoi(strtok(ip_str, "."));
-        ip[1] = atoi(strtok(NULL, "."));
-        ip[2] = atoi(strtok(NULL, "."));
-        ip[3] = atoi(strtok(NULL, ""));
-
-        cidr_to_binmask(cidr, binmask);
-        binmask_to_decmask(binmask, decmask);
-
-        printf("%s\n", binmask);
-
+        parseIPCIDR(argv[1], ip, &cidr);
+        cidr_to_binMask(cidr, bin_mask);
+        binMask_to_Mask(bin_mask, mask);
 
     } else if ( (argc == 3) && (match(argv[1], ddnValidation)) && (match(argv[2], ddnValidation)) ) {
         printf("IP MASK passed regex validation\n");
     } else {
         printf("Syntax error\n");
+        exit(0);
     }
+
+    // printf("%d.%d.%d.%d/%d\n", ip[0],ip[1],ip[2],ip[3],cidr);
+    // printf("%d.%d.%d.%d\n", mask[0],mask[1],mask[2],mask[3]);
+    // printf("%s\n", bin_mask);
 
     return 0;
 }
@@ -73,15 +50,116 @@ int match(const char *string, const char *pattern) {
     return 1;
 }
 
-void cidr_to_binmask(int cidr, char *binmask) {
-    // convert a cidr (int) into a 32 bit binary representation (string)
-    int i=0;
-    for (i=0; i<32; i++) {
+void parseIPCIDR(char *str, int *ip, int *cidr) {
+    // the input string (*str here), would have already been
+    // checked to conform to ip/cidr notation, so at this point
+    // we already knw the basic format is valid.
+
+    // make a copy of the input string
+    char string[strlen(str)];
+    strcpy(string, str);
+    
+    // split the string with '/' to get the ip_str (string), and
+    // the cidr (int)
+    char *ip_str = strtok(string, "/");
+    *cidr = atoi(strtok(NULL, " "));
+
+    // error checking the cidr input
+    if ((*cidr < 8) || (*cidr > 30)) {
+        printf("Invalid CIDR entry...exiting\n");
+        exit(0);
+    }
+
+    // take the ip_str (string), and parse it using '.', then
+    // convert each octet into an integer.
+    ip[0] = atoi(strtok(ip_str, "."));
+    ip[1] = atoi(strtok(NULL, "."));
+    ip[2] = atoi(strtok(NULL, "."));
+    ip[3] = atoi(strtok(NULL, ""));
+
+    // error checking the ip input
+    if ((ip[0] < 1) || (ip[0] > 223) ||
+        (ip[1] < 0) || (ip[1] > 255) ||
+        (ip[2] < 0) || (ip[2] > 255) ||
+        (ip[3] < 0) || (ip[3] > 255) ) {
+        printf("Invalid IP entry...exiting\n");
+        exit(0);
+    }
+}
+
+void cidr_to_binMask(int cidr, char *bin_mask) {
+    // takes the cidr (int) and datafiles the binary representation
+    // of the 32-bit mask, resulting in bin_mask (char)
+
+    for (int i=0; i<32; i++) {
         if (i<cidr) {
-            binmask[i] = '1';
+            bin_mask[i] = '1';
         } else {
-            binmask[i] = '0';
+            bin_mask[i] = '0';
         }
     }
-    binmask[i] = '\0';
+    bin_mask[32] = '\0';
+}
+
+void binMask_to_Mask(char *bin_mask, int *mask) {
+    char octet1[9]; octet1[8] = '\0';
+    char octet2[9]; octet2[8] = '\0';
+    char octet3[9]; octet3[8] = '\0';
+    char octet4[9]; octet4[8] = '\0';
+
+    mask[0] = 0; mask[1] = 0; mask[2] = 0; mask[3] = 0;
+    // for(int i=0; i<8; i++) {
+    //     octet1[i] = bin_mask[i];
+    //     if ((i==0) && (octet1[i]=='1')) {mask[0]+=128;}
+    //     if ((i==1) && (octet1[i]=='1')) {mask[0]+=64;}
+    //     if ((i==2) && (octet1[i]=='1')) {mask[0]+=32;}
+    //     if ((i==3) && (octet1[i]=='1')) {mask[0]+=16;}
+    //     if ((i==4) && (octet1[i]=='1')) {mask[0]+=8;}
+    //     if ((i==5) && (octet1[i]=='1')) {mask[0]+=4;}
+    //     if ((i==6) && (octet1[i]=='1')) {mask[0]+=2;}
+    //     if ((i==7) && (octet1[i]=='1')) {mask[0]+=1;}
+    // }
+    int x = bin_to_dec(octet1);
+
+    for(int i=0; i<8; i++) {
+        octet2[i] = bin_mask[i+8];
+        if ((i==0) && (octet2[i]=='1')) {mask[1]+=128;}
+        if ((i==1) && (octet2[i]=='1')) {mask[1]+=64;}
+        if ((i==2) && (octet2[i]=='1')) {mask[1]+=32;}
+        if ((i==3) && (octet2[i]=='1')) {mask[1]+=16;}
+        if ((i==4) && (octet2[i]=='1')) {mask[1]+=8;}
+        if ((i==5) && (octet2[i]=='1')) {mask[1]+=4;}
+        if ((i==6) && (octet2[i]=='1')) {mask[1]+=2;}
+        if ((i==7) && (octet2[i]=='1')) {mask[1]+=1;}
+    }
+    
+    for(int i=0; i<8; i++) {
+        octet3[i] = bin_mask[i+16];
+        if ((i==0) && (octet3[i]=='1')) {mask[2]+=128;}
+        if ((i==1) && (octet3[i]=='1')) {mask[2]+=64;}
+        if ((i==2) && (octet3[i]=='1')) {mask[2]+=32;}
+        if ((i==3) && (octet3[i]=='1')) {mask[2]+=16;}
+        if ((i==4) && (octet3[i]=='1')) {mask[2]+=8;}
+        if ((i==5) && (octet3[i]=='1')) {mask[2]+=4;}
+        if ((i==6) && (octet3[i]=='1')) {mask[2]+=2;}
+        if ((i==7) && (octet3[i]=='1')) {mask[2]+=1;}
+    }
+
+    for(int i=0; i<8; i++) {
+        octet4[i] = bin_mask[i+24];
+        if ((i==0) && (octet4[i]=='1')) {mask[3]+=128;}
+        if ((i==1) && (octet4[i]=='1')) {mask[3]+=64;}
+        if ((i==2) && (octet4[i]=='1')) {mask[3]+=32;}
+        if ((i==3) && (octet4[i]=='1')) {mask[3]+=16;}
+        if ((i==4) && (octet4[i]=='1')) {mask[3]+=8;}
+        if ((i==5) && (octet4[i]=='1')) {mask[3]+=4;}
+        if ((i==6) && (octet4[i]=='1')) {mask[3]+=2;}
+        if ((i==7) && (octet4[i]=='1')) {mask[3]+=1;}
+    }
+}
+
+int bin_to_dec(char *bin) {
+
+
+    return 0;
 }
