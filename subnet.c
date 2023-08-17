@@ -6,11 +6,12 @@
 // Prototypes
 int match(const char *string, const char *pattern);
 void parseIPCIDR(char *str, int *ip, int *cidr);
+void decimalToBinary(int *ip, int *result);
 
 int main(int argc, char *argv[]) {
     argc = 2; argv[0]="./subnet"; argv[1]="192.168.0.1/24";
 
-    int ip[4] = {0};
+    int ip[4] = {0}, ip_b[32] = {0};
     int cidr = 0;
 
     const char *cidrValidation = "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$";
@@ -19,6 +20,7 @@ int main(int argc, char *argv[]) {
     if ((argc == 2) && (match(argv[1], cidrValidation))) {
 
         parseIPCIDR(argv[1], ip, &cidr);
+        decimalToBinary(ip, ip_b);
 
         printf("%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
         printf("%d\n", cidr);
@@ -77,4 +79,22 @@ void parseIPCIDR(char *str, int *ip, int *cidr) {
         printf("Invalid IP entry...exiting\n");
         exit(0);
     }
+}
+
+void decimalToBinary(int *ip, int *result) {
+    int decimalNumber = 192;
+    
+    int binary[32];
+
+    int index = 0;
+    while (decimalNumber > 0) {
+        binary[index] = decimalNumber % 2;
+        decimalNumber /= 2;
+        index++;
+    }
+
+    for (int i = index - 1; i >= 0; i--) {
+        printf("%d", binary[i]);
+    }
+    printf("\n");
 }
