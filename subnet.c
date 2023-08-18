@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     } else {
         // The only reason this clause would be entered is if the input was in the wrong format.
 
-        printf("Syntax error\n");
+        printf("Syntax: \"subnet ddd.ddd.ddd.ddd/dd\" or \"subnet ddd.ddd.ddd.ddd ddd.ddd.ddd.ddd\" \n\n");
         exit(0);
     }
 
@@ -111,7 +111,8 @@ void parseIPCIDR(char *str, int *ip, int *cidr) {
 
     // error checking the cidr input
     if ((*cidr < 8) || (*cidr > 30)) {
-        printf("Invalid CIDR entry...exiting\n");
+        printf("\nInvalid CIDR entry...exiting\n");
+        printf("Syntax: \"subnet ddd.ddd.ddd.ddd/dd\" or \"subnet ddd.ddd.ddd.ddd ddd.ddd.ddd.ddd\" \n\n");
         exit(0);
     }
 
@@ -127,7 +128,8 @@ void parseIPCIDR(char *str, int *ip, int *cidr) {
         (ip[1] < 0) || (ip[1] > 255) ||
         (ip[2] < 0) || (ip[2] > 255) ||
         (ip[3] < 0) || (ip[3] > 255) ) {
-        printf("Invalid IP entry...exiting\n");
+        printf("\nInvalid IP entry...exiting\n");
+        printf("Syntax: \"subnet ddd.ddd.ddd.ddd/dd\" or \"subnet ddd.ddd.ddd.ddd ddd.ddd.ddd.ddd\" \n\n");
         exit(0);
     }
 }
