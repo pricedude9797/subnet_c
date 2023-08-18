@@ -10,7 +10,7 @@ and output the details of a subnet.
 
 Example 1 (using subnet mask):
 
-          subnet.py 192.168.0.10 255.255.255.0
+          subnet 192.168.0.10 255.255.255.0
 
                   IP Address:  192.168.0.10/24 (255.255.255.0)
              Number of hosts:  254
@@ -21,7 +21,7 @@ Example 1 (using subnet mask):
 
 Example 2 (using CIDR notation):
 
-          subnet.py 192.168.0.10/24
+          subnet 192.168.0.10/24
 
                   IP Address:  192.168.0.10/24 (255.255.255.0)
              Number of hosts:  254
