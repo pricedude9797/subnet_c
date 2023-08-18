@@ -2,42 +2,82 @@
 #include <stdlib.h>
 #include <string.h>
 #include <regex.h>
+#include <math.h>
 
 // Prototypes
 int match(const char *string, const char *pattern);
 void parseIPCIDR(char *str, int *ip, int *cidr);
+void parseIPMASK(char *str, int *ddn);
 void decimalToBinary(int n, int *binary);
 int binaryToInt(int *binary);
-void ipToBinary(int *ip, int *ip_b);
+void ddnToBinary(int *ip, int *ip_b);
 void cidrToBinary(int cidr, int *mask_b);
+int binaryToCidr(int *ddn);
 void binaryToDottedDecimal(int *binary, int *ddn);
+void networkAddress(int *ip_bin, int *mask_bin, int *network, int *first);
+void broadcastAddress(int *ip_bin, int *mask_bin, int *broadcast, int *last);
+int hosts(int cidr);
 
 
 
 
 
 int main(int argc, char *argv[]) {
-    //argc = 2; argv[0]="./subnet"; argv[1]="192.168.0.1/24";
 
+    // Create an initialize the variables and arrays for ip, mask, and cidr
     int ip[4] = {0}, ip_b[32] = {0};
     int cidr = 0, mask_b[32] = {0}, mask[4] = {0};
+    int network[4] = {0}, broadcast[4] = {0};
+    int first[4] = {0}, last[4] = {0};
 
+    // Set up the regex expressions for input validation
     const char *cidrValidation = "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$";
     const char *ddnValidation = "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$";
 
     if ((argc == 2) && (match(argv[1], cidrValidation))) {
+        // In this if clause, the entry has been validated as an IP/CIDR entry.
+        // From here, we parse the entry, further validate what has been entered, and
+        // datafill all of the neccessary varibles needed; ip, mask, and cidr
 
         parseIPCIDR(argv[1], ip, &cidr);
-        ipToBinary(ip, ip_b);
+        ddnToBinary(ip, ip_b);
         cidrToBinary(cidr, mask_b);
         binaryToDottedDecimal(mask_b, mask);
 
     } else if ( (argc == 3) && (match(argv[1], ddnValidation)) && (match(argv[2], ddnValidation)) ) {
-        printf("IP MASK passed regex validation\n");
+        // In this if clause, the entry has been validated as an IP MASK entry.
+        // From here, we parse the entry, further validate what has been entered, and
+        // datafill all of the neccessary varibles needed; ip, mask, and cidr
+
+        parseIPMASK(argv[1], ip);
+        parseIPMASK(argv[2], mask);
+        ddnToBinary(ip, ip_b);
+        ddnToBinary(mask, mask_b);
+        cidr = binaryToCidr(mask_b);
+
     } else {
+        // The only reason this clause would be entered is if the input was in the wrong format.
+
         printf("Syntax error\n");
         exit(0);
     }
+
+    // If we made it this far, the input entry was valid and all of the variables/arrays were
+    // successfully datafilled.
+
+    // get the network address, broadcast address, and first & last addresses
+    networkAddress(ip_b, mask_b, network, first);
+    broadcastAddress(ip_b, mask_b, broadcast, last);
+
+    printf("\n");
+    printf("       IP address: %d.%d.%d.%d/%d (%d.%d.%d.%d)\n",
+        ip[0],ip[1],ip[2],ip[3],cidr,mask[0],mask[1],mask[2],mask[3]);
+    printf("  Number of hosts: %d\n", hosts(cidr));
+    printf("  Network address: %d.%d.%d.%d\n",network[0],network[1],network[2],network[3]);
+    printf("       First host: %d.%d.%d.%d\n",first[0],first[1],first[2],first[3]);
+    printf("        Last host: %d.%d.%d.%d\n",last[0],last[1],last[2],last[3]);
+    printf("Broadcast address: %d.%d.%d.%d\n",broadcast[0],broadcast[1],broadcast[2],broadcast[3]);
+    printf("\n");
 
     return 0;
 }
@@ -92,6 +132,24 @@ void parseIPCIDR(char *str, int *ip, int *cidr) {
     }
 }
 
+void parseIPMASK(char *str, int *ddn) {
+    // Takes in a string that is basically dotted decimal notation, but as a
+    // string. It then parses it into an integer array, saving it in the passed
+    // int array[4].
+
+    // make a copy of the input string
+    char string[strlen(str)];
+    strcpy(string, str);
+
+    // take the ip_str (string), and parse it using '.', then
+    // convert each octet into an integer.
+    ddn[0] = atoi(strtok(string, "."));
+    ddn[1] = atoi(strtok(NULL, "."));
+    ddn[2] = atoi(strtok(NULL, "."));
+    ddn[3] = atoi(strtok(NULL, ""));
+
+}
+
 void decimalToBinary(int n, int *binary) {
     // Takes a number from 0 to 255 and converts it to an
     // 8 bit binary digit. It is then placed in the passed
@@ -109,6 +167,9 @@ void decimalToBinary(int n, int *binary) {
 }
 
 int binaryToInt(int *binary) {
+    // Takes in an int array representing an 8-bit binary number and returns 
+    // the integer decimal value
+
     int decimal = 0;
 
     for (int i = 7; i >= 0; i--) {
@@ -120,7 +181,7 @@ int binaryToInt(int *binary) {
     return decimal;
 }
 
-void ipToBinary(int *ip, int *ip_b) {
+void ddnToBinary(int *ip, int *ip_b) {
     // Takes in the ip array, then converts it to a 32-bit
     // binary array. The output is stored in the ip_b int array
 
@@ -156,6 +217,18 @@ void cidrToBinary(int cidr, int *mask_b) {
     }
 }
 
+int binaryToCidr(int *ddn) {
+    // Takes in the 32-bit binary mask, and returns the CIDR notation
+
+    int count = 0;
+
+    for (int i=0; i<32; i++) {
+        if (ddn[i] == 1) { count++; }
+    }
+
+    return count;
+}
+
 void binaryToDottedDecimal(int *binary, int *ddn) {
     // Take in a 32-bit binary int array, and convert it to dotted decimal
 
@@ -178,4 +251,58 @@ void binaryToDottedDecimal(int *binary, int *ddn) {
     ddn[1] = binaryToInt(octet2);
     ddn[2] = binaryToInt(octet3);
     ddn[3] = binaryToInt(octet4);
+}
+
+void networkAddress(int *ip_bin, int *mask_bin, int *network, int *first) {
+    // Take in the 32-bit binary arrays of IP and Mask, and calculate
+    // the network address. Then datafill the network dotted decimal array.
+    // As an added function, the first host address is calculated here as well
+
+    int network_b[32] = {0};
+    
+    for (int i=0; i<32; i++) {
+        if ((ip_bin[i] == 1) && (mask_bin[i] == 1)) { network_b[i] = 1; }
+    }
+
+    binaryToDottedDecimal(network_b, network);
+
+    first[0] = network[0];
+    first[1] = network[1];
+    first[2] = network[2];
+    first[3] = network[3]+1;
+}
+
+void broadcastAddress(int *ip_bin, int *mask_bin, int *broadcast, int *last) {
+    // Takes in the 32-bit binary representations of the IP address and the
+    // mask, then calculates the broadcast address. It then converts the
+    // results into dotted decimal and stores the results in the in array
+    // broadcast.
+    // As an added function, the last host address is calculated here as well
+
+    int broadcast_b[32] = {0};
+
+    for (int i=0; i<32; i++) {
+        if ((ip_bin[i] == 1) && (mask_bin[i] == 1)) { broadcast_b[i] = 1; }
+        if (mask_bin[i] == 0) { broadcast_b[i] = 1; }
+    }
+
+    binaryToDottedDecimal(broadcast_b, broadcast);
+
+    last[0] = broadcast[0];
+    last[1] = broadcast[1];
+    last[2] = broadcast[2];
+    last[3] = broadcast[3]-1;
+}
+
+int hosts(int cidr) {
+    // Take in the CIDR value, calculate the number of hosts in the network,
+    // then return the results
+
+    int result = 1;
+
+    for (int i = 0; i < (32-cidr); i++) {
+        result *= 2;
+    }
+
+    return result - 2;
 }
