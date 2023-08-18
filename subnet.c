@@ -6,13 +6,21 @@
 // Prototypes
 int match(const char *string, const char *pattern);
 void parseIPCIDR(char *str, int *ip, int *cidr);
-void decimalToBinary(int *ip, int *result);
+void decimalToBinary(int n, int *binary);
+int binaryToInt(int *binary);
+void ipToBinary(int *ip, int *ip_b);
+void cidrToBinary(int cidr, int *mask_b);
+void binaryToDottedDecimal(int *binary, int *ddn);
+
+
+
+
 
 int main(int argc, char *argv[]) {
-    argc = 2; argv[0]="./subnet"; argv[1]="192.168.0.1/24";
+    //argc = 2; argv[0]="./subnet"; argv[1]="192.168.0.1/24";
 
     int ip[4] = {0}, ip_b[32] = {0};
-    int cidr = 0;
+    int cidr = 0, mask_b[32] = {0}, mask[4] = {0};
 
     const char *cidrValidation = "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$";
     const char *ddnValidation = "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$";
@@ -20,10 +28,9 @@ int main(int argc, char *argv[]) {
     if ((argc == 2) && (match(argv[1], cidrValidation))) {
 
         parseIPCIDR(argv[1], ip, &cidr);
-        decimalToBinary(ip, ip_b);
-
-        printf("%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
-        printf("%d\n", cidr);
+        ipToBinary(ip, ip_b);
+        cidrToBinary(cidr, mask_b);
+        binaryToDottedDecimal(mask_b, mask);
 
     } else if ( (argc == 3) && (match(argv[1], ddnValidation)) && (match(argv[2], ddnValidation)) ) {
         printf("IP MASK passed regex validation\n");
@@ -34,6 +41,10 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
+
+
+
 
 int match(const char *string, const char *pattern) {
     regex_t re;
@@ -81,20 +92,90 @@ void parseIPCIDR(char *str, int *ip, int *cidr) {
     }
 }
 
-void decimalToBinary(int *ip, int *result) {
-    int decimalNumber = 192;
-    
-    int binary[32];
+void decimalToBinary(int n, int *binary) {
+    // Takes a number from 0 to 255 and converts it to an
+    // 8 bit binary digit. It is then placed in the passed
+    // binary array
 
-    int index = 0;
-    while (decimalNumber > 0) {
-        binary[index] = decimalNumber % 2;
-        decimalNumber /= 2;
-        index++;
+    int index = 7;
+    if (n > 0) {
+        while (n > 0) {
+            binary[index] = n % 2;
+            n /= 2;
+            index--;
+        }
     }
 
-    for (int i = index - 1; i >= 0; i--) {
-        printf("%d", binary[i]);
+}
+
+int binaryToInt(int *binary) {
+    int decimal = 0;
+
+    for (int i = 7; i >= 0; i--) {
+        if (binary[i] == 1) {
+            decimal += 1 << (7 - i);
+        }
     }
-    printf("\n");
+
+    return decimal;
+}
+
+void ipToBinary(int *ip, int *ip_b) {
+    // Takes in the ip array, then converts it to a 32-bit
+    // binary array. The output is stored in the ip_b int array
+
+    // set up the temporary 8 bit arrays (one for each octet)
+    int oct0[8] = {0};
+    int oct1[8] = {0};
+    int oct2[8] = {0};
+    int oct3[8] = {0};
+
+    // convert each octet into its 8-bit binary equivilent
+    decimalToBinary(ip[0], oct0);
+    decimalToBinary(ip[1], oct1);
+    decimalToBinary(ip[2], oct2);
+    decimalToBinary(ip[3], oct3);
+
+    // datafill the ip_b 32-bit array
+    for (int i=0; i<8; i++) { ip_b[i] = oct0[i]; }
+    for (int i=8; i<16; i++) { ip_b[i] = oct1[i-8]; }
+    for (int i=16; i<24; i++) { ip_b[i] = oct2[i-16]; }
+    for (int i=24; i<32; i++) { ip_b[i] = oct3[i-24]; }
+}
+
+void cidrToBinary(int cidr, int *mask_b) {
+    // convert the cidr notation to a 32-bit binary number
+    // place the results in the mask_b array
+
+    for (int i=0; i<32; i++) {
+        if (i<cidr) {
+            mask_b[i] = 1;
+        } else {
+            mask_b[i] = 0;
+        }
+    }
+}
+
+void binaryToDottedDecimal(int *binary, int *ddn) {
+    // Take in a 32-bit binary int array, and convert it to dotted decimal
+
+    // create and initialize the 8-bit int arrays to hold the octets
+    int octet1[8] = {0};
+    int octet2[8] = {0};
+    int octet3[8] = {0};
+    int octet4[8] = {0};
+
+    // break up the 32-bit binary number into octets
+    for (int i=0; i<32; i++) {
+        if ((i>=0) && (i<=7)) { octet1[i] = binary[i]; }
+        if ((i>=8) && (i<16)) { octet2[i-8] = binary[i]; }
+        if ((i>=16) && (i<24)) { octet3[i-16] = binary[i]; }
+        if ((i>=24) && (i<32)) { octet4[i-24] = binary[i]; }
+    }
+
+    // convert each octet to decimal
+    ddn[0] = binaryToInt(octet1);
+    ddn[1] = binaryToInt(octet2);
+    ddn[2] = binaryToInt(octet3);
+    ddn[3] = binaryToInt(octet4);
 }
